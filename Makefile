@@ -11,9 +11,14 @@ HDR := $(shell find $(SRC_DIR) -type f -name "*.h")
 
 OBJ = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC))
 
+LIBFT = libft/libft.a
+
 all: $(NAME)
 
-$(NAME): $(OBJ)
+$(LIBFT):
+	make -C libft/
+
+$(NAME): $(LIBFT) $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $<
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(HDR)
