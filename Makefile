@@ -19,7 +19,7 @@ $(LIBFT):
 	make -C libft/
 
 $(NAME): $(LIBFT) $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LIBFT)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(HDR)
 	$(CC) $(CFLAGS) -o $@ -c $<

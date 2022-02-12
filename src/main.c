@@ -3,10 +3,11 @@
 #include <unistd.h>
 
 #include "ping.h"
+#include "../libft/libft.h"
 
 int has(int argc, char **argv, const char *str)
 {
-	for (int i = 0; i < argc; ++i)
+	for (int i = 1; i < argc; ++i)
 	{
 		if (ft_strcmp(argv[i], str) == 0)
 			return 1;
@@ -17,9 +18,10 @@ int has(int argc, char **argv, const char *str)
 
 char *get_host(int argc, char **argv)
 {
-	// TODO
-	(void) argc;
-	(void) argv;
+	for (int i = 1; i < argc; ++i)
+		if (argv[i][0] != '-')
+			return argv[i];
+
 	return NULL;
 }
 
@@ -48,7 +50,7 @@ int parse_addr(const char *host, uint8_t *addr)
 	return (i == 4);
 }
 
-void print_help()
+void print_help(void)
 {
 	dprintf(STDERR_FILENO, "Usage\n");
 	dprintf(STDERR_FILENO, "  ping [options] <destination>\n");
@@ -68,10 +70,13 @@ int main(int argc, char **argv)
 	}
 
 	int verbose = has(argc, argv, "-v");
-	const char *host = get_host(argc, argv);
-	if (host == NULL)
+	// TODO
+	(void) verbose;
+
+	const char *host;
+	if (!(host = get_host(argc, argv)))
 	{
-		printf("ping: usage error: Destination address required");
+		printf("ping: usage error: Destination address required\n");
 		return 1;
 	}
 
