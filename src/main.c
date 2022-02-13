@@ -28,12 +28,15 @@ char *get_host(int argc, char **argv)
 int parse_addr(const char *host, uint8_t *addr)
 {
 	size_t i = 0;
-	while (*host)
+	while (i < 4 && *host)
 	{
 		if (*host == '.')
 			return 0;
 
-		addr[i] = (uint8_t) ft_atoi(host);
+		int val = ft_atoi(host);
+		if (val < 0 || val > 255)
+			return 0;
+		addr[i] = (uint8_t) val;
 
 		while (*host && *host != '.')
 			++host;
@@ -47,7 +50,7 @@ int parse_addr(const char *host, uint8_t *addr)
 		i += 1;
 	}
 
-	return (i == 4);
+	return (!*host && i == 4);
 }
 
 void print_help(void)
@@ -82,7 +85,10 @@ int main(int argc, char **argv)
 
 	// TODO Resolve domain first
 	uint8_t addr[4];
-	parse_addr(host, addr);
+	if (!parse_addr(host, addr)) {
+		dprintf(STDERR_FILENO, "ft_ping: %s: Name or service not known\n", host);
+		return 1;
+	}
 
 	ping(host, addr);
 
