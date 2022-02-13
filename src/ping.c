@@ -133,15 +133,33 @@ void ping(const char *host, const uint8_t *addr)
 	size_t received = 0;
 
 	uint64_t start_timestamp = get_timestamp();
+	uint64_t min = (uint64_t) -1;
+	uint64_t sum = 0;
+	uint64_t sqr_sum = 0;
+	uint64_t max = 0;
 
 	while (!stopped)
 	{
-		transmit(sock, addr, transmitted);
-		while (receive(sock, host, addr))
-			;
+		uint64_t begin = get_timestamp();
 
+		transmit(sock, addr, transmitted);
 		++transmitted;
+
+		while (!receive(sock, host, addr))
+			;
+		++received;
+
+		uint64_t delta = get_timestamp() - begin;
+		if (delta < min)
+			min = delta;
+		sum += delta;
+		sqr_sum += delta * delta;
+		if (delta > max)
+			max = delta;
 	}
+
+	float avg = (float) sum / (float) received;
+	float mdev = ((float) sqr_sum / (float) received) - avg;
 
 	uint64_t elapsed = get_timestamp() - start_timestamp;
 
@@ -149,8 +167,9 @@ void ping(const char *host, const uint8_t *addr)
 	unsigned lost_percent = 100 * lost_count / transmitted;
 	printf("\n--- %s ping statistics ---\n", host);
 	printf("%zu packets transmitted, %zu received, %u%% packet loss, time %lums\n",
-		transmitted, received, lost_percent, elapsed);
-	printf("rtt min/avg/max/mdev = 0.022/0.022/0.022/0.000 ms\n"); // TODO
+		transmitted, received, lost_percent, elapsed / 1000);
+	printf("rtt min/avg/max/mdev = %f/%f/%f/%f ms\n",
+		(float) min / 1000., avg / 1000., (float) max / 1000., mdev / 1000);
 
 	close(sock);
 }

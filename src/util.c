@@ -6,7 +6,7 @@ uint64_t get_timestamp(void) {
 	struct timeval t;
 
 	gettimeofday(&t, NULL);
-	return t.tv_sec * 1000 + t.tv_usec / 1000;
+	return (uint64_t) t.tv_sec * 1000000 + t.tv_usec;
 }
 
 int16_t sum(const uint16_t *b, size_t len) {
