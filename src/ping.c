@@ -73,14 +73,14 @@ static void transmit(int sig)
 	p.sequence_number = state.transmitted;
 	for (size_t i = 0; i < sizeof(p.payload); ++i)
 		p.payload[i] = 'a' + i;
-	// TODO Compute checksum
+	p.checksum = compute_checksum(&p, sizeof(p));
 
 	p.ip_hdr.version = 1; // TODO Check
 	p.ip_hdr.tos = 0;
 	p.ip_hdr.length = sizeof(struct icmp_packet) - sizeof(struct ipv4_datagram);
 	p.ip_hdr.identification = 0; // TODO
 	p.ip_hdr.flags_offset = 0; // TODO
-	p.ip_hdr.ttl = 0; // TODO
+	p.ip_hdr.ttl = 1;
 	p.ip_hdr.protocol = 1; // ICMP
 	p.ip_hdr.hdr_checksum = 0; // TODO
 
@@ -89,13 +89,13 @@ static void transmit(int sig)
 	for (size_t i = 0; i < 4; ++i)
 		p.ip_hdr.dst[i] = state.dst[i];
 
-	sendto(state.sock, &p, sizeof(p), MSG_NOSIGNAL, NULL, 0); // TODO Use sockaddr?
+	sendto(state.sock, &p, sizeof(p), MSG_NOSIGNAL, NULL, 0); // TODO Use sockaddr
+
 	++state.transmitted;
 	state.last_timestamp = get_timestamp();
-
 }
 
-static int receive(int sock, const char *host, const uint8_t *addr)
+static int receive(int sock, const char *host, const uint8_t *addr, int verbose)
 {
 	struct msghdr m;
 
@@ -118,6 +118,8 @@ static int receive(int sock, const char *host, const uint8_t *addr)
 		off += m.msg_iov[i].iov_len;
 	}
 
+	(void) verbose;
+
 	// TODO Check package correctness
 
 	size_t payload_size = 0; // TODO
@@ -131,7 +133,7 @@ static int receive(int sock, const char *host, const uint8_t *addr)
 	return 1;
 }
 
-void ping(const char *host, const uint8_t *addr)
+void ping(const char *host, const uint8_t *addr, int verbose)
 {
 	size_t size0 = 0; // TODO
 	size_t size1 = 0; // TODO
@@ -160,7 +162,7 @@ void ping(const char *host, const uint8_t *addr)
 	while (!state.stopped)
 	{
 		alarm(1);
-		while (!state.stopped && !receive(sock, host, addr))
+		while (!state.stopped && !receive(sock, host, addr, verbose))
 			;
 		++received;
 

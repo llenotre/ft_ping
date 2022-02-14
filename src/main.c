@@ -73,8 +73,6 @@ int main(int argc, char **argv)
 	}
 
 	int verbose = has(argc, argv, "-v");
-	// TODO
-	(void) verbose;
 
 	const char *host;
 	if (!(host = get_host(argc, argv)))
@@ -90,7 +88,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	ping(host, addr);
+	ping(host, addr, verbose);
 
 	return 0;
 }
