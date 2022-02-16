@@ -18,13 +18,11 @@ all: $(NAME)
 $(LIBFT):
 	make -C libft/
 
-$(OBJ_DIR):
-	mkdir -p $(OBJ_DIR)
-
 $(NAME): $(LIBFT) $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LIBFT)
 
-$(OBJ_DIR)%.o: $(SRC_DIR)%.c $(OBJ_DIR) $(HDR)
+$(OBJ_DIR)%.o: $(SRC_DIR)%.c $(HDR)
+	@mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 clean:

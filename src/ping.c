@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netdb.h>
 
 #include "../libft/libft.h"
 #include "ping.h"
@@ -47,7 +48,7 @@ struct global
 {
 	int sock;
 	const uint8_t *dst;
-	uint16_t transmitted;
+	size_t transmitted;
 	uint64_t last_timestamp;
 
 	int stopped;
@@ -89,10 +90,26 @@ static void transmit(int sig)
 	for (size_t i = 0; i < 4; ++i)
 		p.ip_hdr.dst[i] = state.dst[i];
 
-	sendto(state.sock, &p, sizeof(p), MSG_NOSIGNAL, NULL, 0); // TODO Use sockaddr
+	struct addrinfo hints;
+	struct addrinfo *result;
+	ft_memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_INET;
+	hints.ai_flags = AI_ADDRCONFIG;
+	hints.ai_socktype = SOCK_RAW;
+
+	int err = getaddrinfo(addr, NULL, &hints, &result);
+	if (err)
+	{
+		// TODO
+	}
+
+	if (result)
+		sendto(state.sock, &p, sizeof(p), MSG_NOSIGNAL, result->ai_addr, result->ai_addrlen);
+	freeaddrinfo(result);
 
 	++state.transmitted;
 	state.last_timestamp = get_timestamp();
+	alarm(1);
 }
 
 static int receive(int sock, const char *host, const uint8_t *addr, int verbose)
@@ -145,11 +162,8 @@ void ping(const char *host, const uint8_t *addr, int verbose)
 
 	int sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
 
-	size_t transmitted = 0;
-	size_t received = 0;
-
 	uint64_t start_timestamp = get_timestamp();
-	uint64_t min = (uint64_t) -1;
+	uint64_t min = 0;
 	uint64_t sum = 0;
 	uint64_t sqr_sum = 0;
 	uint64_t max = 0;
@@ -159,18 +173,22 @@ void ping(const char *host, const uint8_t *addr, int verbose)
 	state.transmitted = 0;
 	state.stopped = 0;
 
+	size_t received = 0;
+
+	alarm(1);
 	while (!state.stopped)
 	{
-		alarm(1);
 		while (!state.stopped && !receive(sock, host, addr, verbose))
 			;
+		if (state.stopped)
+			break;
 		++received;
 
 		if (state.stopped)
 			break;
 
 		uint64_t delta = get_timestamp() - state.last_timestamp;
-		if (delta < min)
+		if (received == 1 || delta < min)
 			min = delta;
 		sum += delta;
 		sqr_sum += delta * delta;
@@ -178,18 +196,26 @@ void ping(const char *host, const uint8_t *addr, int verbose)
 			max = delta;
 	}
 
-	float avg = (float) sum / (float) received;
-	float mdev = ((float) sqr_sum / (float) received) - avg;
 
 	uint64_t elapsed = get_timestamp() - start_timestamp;
 
-	size_t lost_count = transmitted - received;
-	unsigned lost_percent = 100 * lost_count / transmitted;
+	size_t lost_count = state.transmitted - received;
+	unsigned lost_percent = 0;
+	if (state.transmitted > 0)
+		lost_percent = 100 * lost_count / state.transmitted;
+
 	printf("\n--- %s ping statistics ---\n", host);
 	printf("%zu packets transmitted, %zu received, %u%% packet loss, time %fms\n",
-		transmitted, received, lost_percent, (float) elapsed / 1000.);
-	printf("rtt min/avg/max/mdev = %f/%f/%f/%f ms\n",
-		(float) min / 1000., avg / 1000., (float) max / 1000., mdev / 1000.);
+		state.transmitted, received, lost_percent, (float) elapsed / 1000.);
+
+	if (received > 0)
+	{
+		float avg = (float) sum / (float) received;
+		float mdev = ((float) sqr_sum / (float) received) - avg;
+
+		printf("rtt min/avg/max/mdev = %f/%f/%f/%f ms\n",
+			(float) min / 1000., avg / 1000., (float) max / 1000., mdev / 1000.);
+	}
 
 	close(sock);
 }
